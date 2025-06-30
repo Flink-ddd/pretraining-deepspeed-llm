@@ -1,0 +1,15 @@
+{
+  "train_micro_batch_size_per_gpu": 4,
+  "optimizer": {
+    "type": "AdamW",
+    "params": {
+      "lr": 0.001
+    }
+  },
+  "fp16": {
+    "enabled": true
+  },
+  "zero_optimization": {
+    "stage": 2
+  }
+}
