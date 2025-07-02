@@ -1,11 +1,11 @@
-# scripts/debug_deepspeed.py
 
 import argparse
 import torch
 import deepspeed
 import time
+import os
+import torch.distributed as dist # 导入 torch.distributed
 
-# 注意：为了Debug，我们不再从config文件读取，而是在这里直接定义一个超小的模型
 from src.models.transformer import Transformer
 
 def get_dummy_data(batch_size, context_length, vocab_size, device):
@@ -17,25 +17,34 @@ def get_dummy_data(batch_size, context_length, vocab_size, device):
 def main():
     print("--- DeepSpeed Debug Script ---")
 
-    # 1. DeepSpeed 需要的参数解析器
     parser = argparse.ArgumentParser(description="DeepSpeed Debugging")
     parser.add_argument('--local_rank', type=int, default=-1, help='local rank passed from distributed launcher')
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
 
-    # 2. 定义一个极小的模型，用于快速启动和调试
-    # 这可以让你迅速进入断点，而不用等大模型加载半天
+    # 手动设置设备，这在调试单卡时非常重要
+    local_rank = int(os.environ['LOCAL_RANK'])
+    torch.cuda.set_device(local_rank)
+    
+    # 手动初始化 PyTorch 分布式进程组
+    # 这会使用我们在 launch.json 中设置的环境变量
+    print("Initializing torch.distributed...")
+    dist.init_process_group(backend='nccl')
+    print("torch.distributed initialized.")
+    # ----------------------------------------------------
+
+    # 2. 定义一个极小的模型
     tiny_model_args = {
         'vocab_size': 50257,
         'context_length': 128,
-        'n_embed': 128,      # 非常小的嵌入维度
-        'n_head': 4,         # 很少的头
-        'n_blocks': 2,       # 只有2层
+        'n_embed': 128,
+        'n_head': 4,
+        'N_BLOCKS': 2,
     }
     model = Transformer(**tiny_model_args)
     
-    # 3. DeepSpeed 初始化！这是你 Debug 的核心入口
-    # 在这里设置断点，可以进入 DeepSpeed 的源码
+    # 3. DeepSpeed 初始化！
+    # 现在它会检测到已经存在的分布式环境，并直接使用它
     print("Initializing DeepSpeed Engine...")
     model_engine, optimizer, _, _ = deepspeed.initialize(
         args=args,
@@ -48,10 +57,8 @@ def main():
 
     # 训练循环（只跑几步）
     for step in range(10):
-        # 获取虚拟数据
         xb, yb = get_dummy_data(4, 128, tiny_model_args['vocab_size'], device)
 
-        # 在这里设置断点，跟踪模型的前向和后向传播
         print(f"\n--- Step {step} ---")
         print("Forward pass...")
         loss = model_engine(xb, yb)[1]
@@ -63,9 +70,12 @@ def main():
         model_engine.step()
 
         print(f"Step {step}: Loss = {loss.item()}")
-        time.sleep(1) # 暂停一下，方便观察
+        time.sleep(1) 
 
     print("\nDebug script finished successfully!")
+    
+    # 清理进程组
+    dist.destroy_process_group()
 
 
 if __name__ == '__main__':

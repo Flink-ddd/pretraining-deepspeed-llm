@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "DeepSpeed Debug (PYTHONPATH Fix)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/debug_deepspeed.py",
+            "args": [
+                "--local_rank=0",
+                "--deepspeed",
+                "--deepspeed_config",
+                "${workspaceFolder}/ds_config_debug.json"
+            ],
+            "env": {
+                "MASTER_ADDR": "localhost",
+                "MASTER_PORT": "9994",
+                "RANK": "0",
+                "WORLD_SIZE": "1",
+                "LOCAL_RANK": "0",
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}
