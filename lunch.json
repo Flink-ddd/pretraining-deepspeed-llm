@@ -2,12 +2,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "DeepSpeed Debug (PYTHONPATH Fix)",
+            "name": "DeepSpeed Debug (Single GPU)",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/debug_deepspeed.py",
             "args": [
-                "--local_rank=0",
                 "--deepspeed",
                 "--deepspeed_config",
                 "${workspaceFolder}/ds_config_debug.json"
@@ -18,6 +17,24 @@
                 "RANK": "0",
                 "WORLD_SIZE": "1",
                 "LOCAL_RANK": "0",
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "DeepSpeed Debug (Simulate 2 GPUs)",
+            "type": "python",
+            "request": "launch",
+            "module": "deepspeed.launcher.launch",
+            "args": [
+                "${workspaceFolder}/scripts/debug_deepspeed.py",
+                "--deepspeed",
+                "--deepspeed_config",
+                "${workspaceFolder}/ds_config_debug.json"
+            ],
+            "env": {
+                "DEEPSPEED_NUM_GPUS": "2", 
                 "PYTHONPATH": "${workspaceFolder}"
             },
             "console": "integratedTerminal",
